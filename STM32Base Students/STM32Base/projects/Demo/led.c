@@ -56,7 +56,7 @@ int main(void)
     /* enable clock for GPIO C */
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOC, ENABLE);
 
-    /* Configure GPIO pin for LED3 as output (connected to PC0) */
+    /* Configure GPIO pin for LED3 LED4 LED5 as output (connected to PC0 PC1 PC2) */
     GPIO_StructInit(&initStruct);
     initStruct.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2;
     initStruct.GPIO_Mode = GPIO_Mode_OUT;
@@ -66,7 +66,7 @@ int main(void)
 		const uint16_t leds[] = {GPIO_Pin_0, GPIO_Pin_1, GPIO_Pin_2};
     const int num_leds = sizeof(leds) / sizeof(leds[0]);
 
-    GPIO_SetBits(GPIOC, GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2);
+    GPIO_SetBits(GPIOC, GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2); // turn LEDs off
 
     while (1)
     {
@@ -86,24 +86,4 @@ int main(void)
             GPIO_SetBits(GPIOC, leds[i]);
         }
     }
-
-    /* alternative using direct register access */
-
-    /*
-    // enable clock for GPIO C
-    RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
-
-    // set pins 0-2 on port C to output
-    GPIOC->MODER = (1 << (2*0));
-
-    while (1)
-    {
-        // disable LED3 (set pin to high because of negative logic)
-        GPIOC->ODR = GPIO_Pin_0;
-        SysDelay_Delay(200);
-        // enable LED3
-        GPIOC->ODR = 0;
-        SysDelay_Delay(200);
-    }
-    */
 }
