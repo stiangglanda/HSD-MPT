@@ -58,18 +58,33 @@ int main(void)
 
     /* Configure GPIO pin for LED3 as output (connected to PC0) */
     GPIO_StructInit(&initStruct);
-    initStruct.GPIO_Pin = GPIO_Pin_0;
+    initStruct.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2;
     initStruct.GPIO_Mode = GPIO_Mode_OUT;
     GPIO_Init(GPIOC, &initStruct);
+	
+
+		const uint16_t leds[] = {GPIO_Pin_0, GPIO_Pin_1, GPIO_Pin_2};
+    const int num_leds = sizeof(leds) / sizeof(leds[0]);
+
+    GPIO_SetBits(GPIOC, GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2);
 
     while (1)
     {
-        /* disable LED3 (set pin to high because of negative logic) */
-        GPIO_SetBits(GPIOC, GPIO_Pin_0);
-        SysDelay_Delay(200);
-        /* enable LED3 */
-        GPIO_ResetBits(GPIOC, GPIO_Pin_0);
-        SysDelay_Delay(200);
+        /* left to right */
+        for (int i = 0; i < num_leds; i++)
+        {
+            GPIO_ResetBits(GPIOC, leds[i]);
+            SysDelay_Delay(200);
+            GPIO_SetBits(GPIOC, leds[i]);
+        }
+      
+        /* right to left avoid the outer LEDs */
+        for (int i = num_leds - 2; i >= 1; i--)
+        {
+            GPIO_ResetBits(GPIOC, leds[i]);
+            SysDelay_Delay(200);
+            GPIO_SetBits(GPIOC, leds[i]);
+        }
     }
 
     /* alternative using direct register access */
