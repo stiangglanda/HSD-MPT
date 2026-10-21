@@ -424,11 +424,6 @@
               <FileType>1</FileType>
               <FilePath>.\main.c</FilePath>
             </File>
-            <File>
-              <FileName>board_led.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\board_led.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -441,6 +436,21 @@
             </File>
           </Files>
         </Group>
+        <Group>
+          <GroupName>board</GroupName>
+          <Files>
+            <File>
+              <FileName>board_button.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\system\board\board_button.c</FilePath>
+            </File>
+            <File>
+              <FileName>board_led.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\system\board\board_led.c</FilePath>
+            </File>
+          </Files>
+        </Group>
       </Groups>
     </Target>
   </Targets>
@@ -450,5 +460,14 @@
     <components/>
     <files/>
   </RTE>
+
+  <LayerInfo>
+    <Layers>
+      <Layer>
+        <LayName>Uebung2</LayName>
+        <LayPrjMark>1</LayPrjMark>
+      </Layer>
+    </Layers>
+  </LayerInfo>
 
 </Project>

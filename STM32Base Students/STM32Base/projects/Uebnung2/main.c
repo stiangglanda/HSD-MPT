@@ -11,6 +11,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f0xx_conf.h"
 #include "sysdelay.h"
+#include "board_button.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -52,38 +53,20 @@ int main(void)
  
     /* init the sys tick counter (needed for SysDelay) */
     SysTick_Init();
-    
-    /* enable clock for GPIO C */
-    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOC, ENABLE);
 
-    /* Configure GPIO pin for LED3 LED4 LED5 as output (connected to PC0 PC1 PC2) */
-    GPIO_StructInit(&initStruct);
-    initStruct.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2;
-    initStruct.GPIO_Mode = GPIO_Mode_OUT;
-    GPIO_Init(GPIOC, &initStruct);
-	
-
-		const uint16_t leds[] = {GPIO_Pin_0, GPIO_Pin_1, GPIO_Pin_2};
-    const int num_leds = sizeof(leds) / sizeof(leds[0]);
-
-    GPIO_SetBits(GPIOC, GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2); // turn LEDs off
+    Button_Initialise();
+  
 
     while (1)
     {
-        /* left to right */
-        for (int i = 0; i < num_leds; i++)
-        {
-            GPIO_ResetBits(GPIOC, leds[i]);
-            SysDelay_Delay(200);
-            GPIO_SetBits(GPIOC, leds[i]);
-        }
-      
-        /* right to left avoid the outer LEDs */
-        for (int i = num_leds - 2; i >= 1; i--)
-        {
-            GPIO_ResetBits(GPIOC, leds[i]);
-            SysDelay_Delay(200);
-            GPIO_SetBits(GPIOC, leds[i]);
-        }
+      uint32_t res = Button_GetState();
+
+      if(res & BUTTON_USER0_MASK)
+      {
+        //increment/decrement counter
+      }
+
+      //wait 200ms
+      SysDelay_Delay(200);
     }
 }
