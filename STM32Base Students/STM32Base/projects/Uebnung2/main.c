@@ -50,36 +50,47 @@ void SysTick_Handler()
   */
 int main(void)
 {
-    /* init the sys tick counter (needed for SysDelay) */
-    SysTick_Init();
+    uint32_t counter = 0;
 
+    /* Initialize the timer, buttons, and LEDs */
+    SysTick_Init();
     Button_Initialize();
-		LED_Initialize();
-		uint32_t Counter = 0;
+    LED_Initialize();
 
     while (1)
     {
-      uint32_t res = Button_GetState();
+        uint32_t buttonState = Button_GetState();
 
-      if(res & BUTTON_USER0_MASK)
-      {
-				if(Counter>=7) {
-					Counter=0;
-				} else {
-					Counter++;
-				}
-      }
-			
-			if(res & BUTTON_USER1_MASK)
-      {
-				if(Counter==0) {
-					Counter = 7;
-				} else {
-					Counter--;
-				}
-      }
-			
-			LED_SetOut(Counter);
-      SysDelay_Delay(200);
+        /* USER0 counts up */
+        if (buttonState & BUTTON_USER0_MASK)
+        {
+            if (counter >= 7)
+            {
+                /* After 7 wrap around to 0 */
+                counter = 0;
+            }
+            else
+            {
+                counter++;
+            }
+        } /* USER1 counts down */
+        else if (buttonState & BUTTON_USER1_MASK)
+        {
+            if (counter == 0)
+            {
+                /* Before 0 wrap around to 7 */
+                counter = 7;
+            }
+            else
+            {
+                counter--;
+            }
+        }
+
+        /* Show the counter value on the three LEDs */
+        LED_SetOut(counter);
+
+        /* Wait 200 ms */
+        SysDelay_Delay(200);
     }
 }
