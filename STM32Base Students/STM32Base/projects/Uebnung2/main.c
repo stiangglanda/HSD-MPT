@@ -1,10 +1,10 @@
 /**
   ******************************************************************************
-  * @file    led.c 
-  * @author  Andreas Oyrer
+  * @file    main.c 
+  * @author  Leander Kieweg
   * @version V1.0
-  * @date    30-September-2022
-  * @brief   Main program body
+  * @date    25-Oct-2026
+  * @brief   Main program
   ******************************************************************************
   */
 
@@ -61,30 +61,15 @@ int main(void)
     {
         uint32_t buttonState = Button_GetState();
 
-        /* USER0 counts up */
         if (buttonState & BUTTON_USER0_MASK)
         {
-            if (counter >= 7)
-            {
-                /* After 7 wrap around to 0 */
-                counter = 0;
-            }
-            else
-            {
-                counter++;
-            }
-        } /* USER1 counts down */
+          /* Count up, 7 + 1 wraps to 0 */
+          counter = (counter + 1) & 0x07;
+        }
         else if (buttonState & BUTTON_USER1_MASK)
         {
-            if (counter == 0)
-            {
-                /* Before 0 wrap around to 7 */
-                counter = 7;
-            }
-            else
-            {
-                counter--;
-            }
+          /* Count down, 0 - 1 wraps to 7 */
+          counter = (counter - 1) & 0x07;
         }
 
         /* Show the counter value on the three LEDs */
