@@ -12,6 +12,7 @@
 #include "stm32f0xx_conf.h"
 #include "sysdelay.h"
 #include "board_button.h"
+#include "board_led.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -53,7 +54,8 @@ int main(void)
     SysTick_Init();
 
     Button_Initialize();
-  
+		LED_Initialize();
+		uint32_t Counter = 0;
 
     while (1)
     {
@@ -61,10 +63,26 @@ int main(void)
 
       if(res & BUTTON_USER0_MASK)
       {
+				if(Counter>=7) {
+					Counter=0;
+				} else {
+					Counter++;
+				}
+				SysDelay_Delay(200);
         //increment/decrement counter
       }
-
-      //wait 200ms
-      SysDelay_Delay(200);
+			
+			if(res & BUTTON_USER1_MASK)
+      {
+				if(Counter==0) {
+					Counter=0;
+				} else {
+					Counter--;
+				}
+				SysDelay_Delay(200);
+        //increment/decrement counter
+      }
+			
+			LED_SetOut(Counter);
     }
 }
