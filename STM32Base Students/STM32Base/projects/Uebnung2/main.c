@@ -68,21 +68,18 @@ int main(void)
 				} else {
 					Counter++;
 				}
-				SysDelay_Delay(200);
-        //increment/decrement counter
       }
 			
 			if(res & BUTTON_USER1_MASK)
       {
 				if(Counter==0) {
-					Counter=0;
+					Counter = 7;
 				} else {
 					Counter--;
 				}
-				SysDelay_Delay(200);
-        //increment/decrement counter
       }
 			
 			LED_SetOut(Counter);
+      SysDelay_Delay(200);
     }
 }
