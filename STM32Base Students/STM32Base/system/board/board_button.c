@@ -19,7 +19,7 @@ uint32_t Button_GetState(void)
 {
     uint32_t retVal = 0;
 
-    // check if PD0 (=button0 = SW2= is pressed
+    /* check if PD0 (=button0 = SW2= is pressed */
     if ((GPIOD->IDR & GPIO_Pin_0) != 0)
     {
         retVal |= BUTTON_USER0_MASK;
