@@ -49,12 +49,10 @@ void SysTick_Handler()
   */
 int main(void)
 {
-    GPIO_InitTypeDef initStruct;
- 
     /* init the sys tick counter (needed for SysDelay) */
     SysTick_Init();
 
-    Button_Initialise();
+    Button_Initialize();
   
 
     while (1)
