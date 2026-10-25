@@ -65,17 +65,21 @@ int main(void)
         {
           /* Count up, 7 + 1 wraps to 0 */
           counter = (counter + 1) & 0x07;
+
+          /* Show the counter value on the three LEDs */
+          LED_SetOut(counter);
+          /* Wait 200 ms */
+          SysDelay_Delay(200);
         }
         else if (buttonState & BUTTON_USER1_MASK)
         {
           /* Count down, 0 - 1 wraps to 7 */
           counter = (counter - 1) & 0x07;
+
+          /* Show the counter value on the three LEDs */
+          LED_SetOut(counter);
+          /* Wait 200 ms */
+          SysDelay_Delay(200);
         }
-
-        /* Show the counter value on the three LEDs */
-        LED_SetOut(counter);
-
-        /* Wait 200 ms */
-        SysDelay_Delay(200);
     }
 }
