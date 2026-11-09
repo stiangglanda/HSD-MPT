@@ -17,6 +17,18 @@ void Button_Initialize(void)
 
     /* write the settings into the GPIO registers */
     GPIO_Init(GPIOD, &initStruct);
+
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+
+    /* initialize the GPIO struct with default values */
+    GPIO_StructInit(&initStruct);
+    /* use pin 0 of port A as inputs with pull-down */
+    initStruct.GPIO_Pin = GPIO_Pin_0;
+    initStruct.GPIO_Mode = GPIO_Mode_IN;
+    initStruct.GPIO_PuPd = GPIO_PuPd_DOWN;
+
+    /* write the settings into the GPIO registers */
+    GPIO_Init(GPIOA, &initStruct);
 }
 
 uint32_t Button_GetState(void)
@@ -33,6 +45,12 @@ uint32_t Button_GetState(void)
     if ((GPIOD->IDR & GPIO_Pin_1) != 0)
     {
         retVal |= BUTTON_USER1_MASK;
+    }
+
+    /* check if PA0 is pressed */
+    if ((GPIOA->IDR & GPIO_Pin_0) != 0)
+    {
+        retVal |= BUTTON_WAKEUP_MASK;
     }
 
     return retVal;
