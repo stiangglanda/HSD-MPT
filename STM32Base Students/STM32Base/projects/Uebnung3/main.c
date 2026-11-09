@@ -3,7 +3,7 @@
   * @file    main.c 
   * @author  Leander Kieweg
   * @version V1.0
-  * @date    25-Oct-2026
+  * @date    09-Nov-2026
   * @brief   Main program
   ******************************************************************************
   */
@@ -23,19 +23,18 @@
 /* Private functions ---------------------------------------------------------*/
 
 /**
-  * @brief  Initialize the sys tick timer (M0 core) which is used for delay.
+  * @brief  Initialize the SysTick timer.
   * @param  None
   * @retval None
   */
 void SysTick_Init(void) 
 {
-    /* init the sys tick timer to be called every 1ms */
+    /* Tick every 1 ms. */
     SysTick_Config(SystemCoreClock / 1000);
 } 
 
 /**
-  * @brief  This is the SysTick interrupt handler which is called every 1ms. 
-            We have to increment the HAL tick counter which is used for SysDelay
+  * @brief  SysTick interrupt handler.
   * @param  None
   * @retval None
   */
@@ -44,43 +43,50 @@ void SysTick_Handler()
     SysDelay_IncTicks();
 }
 
+/**
+  * @brief  Switch SYSCLK from 48 MHz to 24 MHz.
+  * @param  None
+  * @retval None
+  */
 static void Systemconfig_Clock(void)
 {
-    // Switch SYSCLK to HSI first, PLL can only be configured while it is off.
+    // Switch to HSI before changing the PLL.
     RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_HSI;
     while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI)
     {
-        // wait until HSI is used as system clock
+        // Wait for HSI.
     }
 
-    // Disable PLL and wait until it is stopped.
+    // Disable PLL.
     RCC->CR &= ~RCC_CR_PLLON;
     while ((RCC->CR & RCC_CR_PLLRDY) != 0)
     {
-        // wait until PLL is unlocked
+        // Wait for PLL to stop.
     }
 
-    // PREDIV = /1 -> PLL input = 8 MHz
+    // PREDIV /1: PLL input = 8 MHz.
     RCC->CFGR2 = (RCC->CFGR2 & ~RCC_CFGR2_PREDIV1) | RCC_CFGR2_PREDIV1_DIV1;
 
-    // PLL source = HSI/PREDIV, PLLMUL = x3 -> PLL output = 24 MHz
+    // HSI/PREDIV x3: PLL output = 24 MHz.
     RCC->CFGR = (RCC->CFGR & ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLMUL)) | RCC_CFGR_PLLSRC_HSI_PREDIV | RCC_CFGR_PLLMUL3;
 
-    // Enable PLL and wait until it is locked.
+    // Keep the existing flash latency.
+
+    // Enable PLL.
     RCC->CR |= RCC_CR_PLLON;
     while ((RCC->CR & RCC_CR_PLLRDY) == 0)
     {
-        // wait until PLL is ready
+        // Wait for PLL.
     }
 
-    // Select PLL as system clock and wait until the switch is done.
+    // Select PLL as system clock.
     RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
     while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL)
     {
-        // wait until PLL is used as system clock
+        // Wait for the switch.
     }
 
-    // Update CMSIS variable (SysTick is intentionally NOT reconfigured)
+    // Update CMSIS clock variable.
     SystemCoreClock = 24000000U;
 }
 
@@ -91,11 +97,10 @@ static void Systemconfig_Clock(void)
   */
 int main(void)
 {
-    uint32_t counter = 0;
-    bool alarm = false;
-    bool clockChanged = false;   // oben bei den Variablen
+    bool alarm = false;          // Alarm active
+    bool clockChanged = false;   // Clock already changed
 
-    /* Initialize the timer, buttons, and LEDs */
+    /* Initialize timer, buttons, and LEDs. */
     SysTick_Init();
     Button_Initialize();
     LED_Initialize();
@@ -104,40 +109,46 @@ int main(void)
     {
         uint32_t buttonState = Button_GetState();
 
+        // Handle only the first pressed button.
         if (buttonState & BUTTON_USER0_MASK)
         {
+          // Alarm zone 1.
           LED_On(LED4);
           alarm = true;
-          /* Wait 200 ms */
+          /* Debounce delay. */
           SysDelay_Delay(200);
         }
         else if (buttonState & BUTTON_USER1_MASK)
         {
+          // Alarm zone 2.
           LED_On(LED5);
           alarm = true;
-          /* Wait 200 ms */
+          /* Debounce delay. */
           SysDelay_Delay(200);
         }
         else if (buttonState & BUTTON_WAKEUP_MASK)
         {
+            // Disable alarm.
             LED_Off(LED4);
             LED_Off(LED5);
             LED_Off(LED3);
             alarm = false;
-        
+
+            // Change the clock once.
             if (!clockChanged)
             {
                 Systemconfig_Clock();
                 clockChanged = true;
             }
+            /* Debounce delay. */
             SysDelay_Delay(200);
         }
 
         if (alarm)
         {
+          // Blink siren LED.
           LED_Toggle(LED3);
           SysDelay_Delay(200);
-          
         }
     }
 }
