@@ -43,6 +43,39 @@ void SysTick_Handler()
     SysDelay_IncTicks();
 }
 
+void TIM3_InitForCompareOutput(void)
+{
+  //configure PC8 as AF mode
+  GPIO_InitTypeDef initStruct;
+
+  // enable clock for PC8
+  RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+
+  //configure PC8 as AF
+  GPIO_StructInit(&initStruct);
+  initStruct.GPIO_Pin = GPIO_Pin_8;
+  initStruct.GPIO_Mode = GPIO_Mode_AF;
+  GPIO_Init(GPIOC, &initStruct);
+  GPIO_PinAFConfig(GPIOC, GPIO_PinSource8, GPIO_AF_0);
+
+  //setup timer 3 channel 3 to toggle PC8 mit 1Hz
+  RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //activate clock
+
+  //set ARR register
+  TIM3->ARR = (SystemCoreClock / 2UL / 1000UL) - 1UL;
+  TIM3->PSC = 1000 - 1; //set prescaler to 1000
+  TIM3->CCR3 = (SystemCoreClock / 2UL / 1000UL) -1UL;
+
+  //configure output
+  TIM3->CCMR2|= (3<<4);
+
+  //enable output compare channel 3 for pin
+  TIM3->CCER |= TIM_CCER_CC3E;
+
+  //enable timer 3
+  TIM3->CR1 |= TIM_CR1_CEN;
+}
+
 /**
   * @brief  Switch SYSCLK from 48 MHz to 24 MHz.
   * @param  None
@@ -97,58 +130,13 @@ static void Systemconfig_Clock(void)
   */
 int main(void)
 {
-    bool alarm = false;          // Alarm active
-    bool clockChanged = false;   // Clock already changed
 
-    /* Initialize timer, buttons, and LEDs. */
     SysTick_Init();
-    Button_Initialize();
-    LED_Initialize();
+
+    TIM3_InitForCompareOutput();
 
     while (1)
     {
-        uint32_t buttonState = Button_GetState();
-
-        // Handle only the first pressed button.
-        if (buttonState & BUTTON_USER0_MASK)
-        {
-          // Alarm zone 1.
-          LED_On(LED4);
-          alarm = true;
-          /* Debounce delay. */
-          SysDelay_Delay(200);
-        }
-        else if (buttonState & BUTTON_USER1_MASK)
-        {
-          // Alarm zone 2.
-          LED_On(LED5);
-          alarm = true;
-          /* Debounce delay. */
-          SysDelay_Delay(200);
-        }
-        else if (buttonState & BUTTON_WAKEUP_MASK)
-        {
-            // Disable alarm.
-            LED_Off(LED4);
-            LED_Off(LED5);
-            LED_Off(LED3);
-            alarm = false;
-
-            // Change the clock once.
-            if (!clockChanged)
-            {
-                Systemconfig_Clock();
-                clockChanged = true;
-            }
-            /* Debounce delay. */
-            SysDelay_Delay(200);
-        }
-
-        if (alarm)
-        {
-          // Blink siren LED.
-          LED_Toggle(LED3);
-          SysDelay_Delay(200);
-        }
+      SysDelay_Delay(200);
     }
 }
