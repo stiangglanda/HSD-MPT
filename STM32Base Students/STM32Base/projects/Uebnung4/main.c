@@ -61,19 +61,43 @@ void TIM3_InitForCompareOutput(void)
   //setup timer 3 channel 3 to toggle PC8 mit 1Hz
   RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //activate clock
 
-  //set ARR register
-  TIM3->ARR = (SystemCoreClock / 2UL / 1000UL) - 1UL;
-  TIM3->PSC = 1000 - 1; //set prescaler to 1000
-  TIM3->CCR3 = (SystemCoreClock / 2UL / 1000UL) -1UL;
-
   //configure output
   TIM3->CCMR2|= (3<<4);
 
   //enable output compare channel 3 for pin
   TIM3->CCER |= TIM_CCER_CC3E;
+}
 
-  //enable timer 3
-  TIM3->CR1 |= TIM_CR1_CEN;
+
+void TIM3_ChangeFrequency(uint32_t frequency)
+{
+  if (frequency == 0)
+  {
+    return;
+  }
+
+  TIM3->CR1 &= ~TIM_CR1_CEN; //disable timer
+
+  // 9(Hz) * 2(toggle) = 18
+  // 1/18 = 0.055555556s
+
+  // 24.000.000 Hz / ((1000 - 1) +1) = 24.000 Hz
+
+  // 24000 * 0.055555556s = 1333.33333
+
+  // 1333 / 2 = 666
+
+  uint32_t arr = 24000 / (frequency * 2);
+
+  TIM3->PSC = 1000 - 1;
+  TIM3->ARR = arr - 1;
+  TIM3->CCR3 = arr / 2;
+
+  TIM3->CNT = 0; //reset counter
+
+  TIM3->EGR |= TIM_EGR_UG; //update registers
+
+  TIM3->CR1 |= TIM_CR1_CEN; //enable timer
 }
 
 /**
@@ -132,11 +156,25 @@ int main(void)
 {
 
     SysTick_Init();
-
+    Systemconfig_Clock();
+    Button_Initialize();
     TIM3_InitForCompareOutput();
 
     while (1)
     {
-      SysDelay_Delay(200);
+      uint32_t buttonState = Button_GetState();
+
+      if (buttonState & BUTTON_USER0_MASK)
+      {
+        TIM3_ChangeFrequency(2);
+      }
+      else if (buttonState & BUTTON_USER1_MASK)
+      {
+        TIM3_ChangeFrequency(4);
+      }
+      else if (buttonState & BUTTON_WAKEUP_MASK)
+      {
+        TIM3_ChangeFrequency(9);
+      }
     }
 }
