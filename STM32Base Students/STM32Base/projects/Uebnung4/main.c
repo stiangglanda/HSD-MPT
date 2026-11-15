@@ -3,7 +3,7 @@
   * @file    main.c 
   * @author  Leander Kieweg
   * @version V1.0
-  * @date    09-Nov-2026
+  * @date    15-Nov-2026
   * @brief   Main program
   ******************************************************************************
   */
@@ -15,10 +15,9 @@
 #include "board_led.h"
 #include <stdbool.h>
 
-#define TIM3_TICK_HZ 24000U   // Zaehlfrequenz von TIM3
-
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+#define TIM3_TICK_HZ 24000U   // Counter frequency of TIM3
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -60,12 +59,12 @@ void TIM3_InitForCompareOutput(void)
   GPIO_Init(GPIOC, &initStruct);
   GPIO_PinAFConfig(GPIOC, GPIO_PinSource8, GPIO_AF_0);
 
-  //setup timer 3 channel 3 to toggle PC8 mit 1Hz
+  //setup timer 3 channel 3 as PWM on PC8
   RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //activate clock
 
   //configure output
-  TIM3->CCMR2 |= (6 << 4); // PWM mode
-  TIM3->CCMR2 |= TIM_CCMR2_OC3PE; // Vorladen für CCR3
+  TIM3->CCMR2 |= (6 << 4);        // PWM mode 1
+  TIM3->CCMR2 |= TIM_CCMR2_OC3PE; // preload for CCR3
 
   //enable output compare channel 3 for pin
   TIM3->CCER |= TIM_CCER_CC3E;
@@ -79,12 +78,13 @@ void TIM3_SetBlink(uint32_t freq, uint32_t high, uint32_t low)
     return;
   }
 
-  // TIM3 Takt = 24 MHz, PSC = 24 MHz / 24 kHz - 1 = 999
-  // Periode in Ticks = 24000 / freq
+  // TIM3 clock = 48 MHz, PSC = 48 MHz / 24 kHz - 1 = 1999
+  // Period in ticks = 24000 / freq
 
-  // USER0, 2 Hz, 1:5:  Periode = 12000, CCR3 = 12000 * 1 / 6 = 2000
-  // USER1, 4 Hz, 1:3:  Periode = 6000,  CCR3 = 6000 * 1 / 4 = 1500
-  // WAKEUP, 9 Hz, 3:2: Periode = 2666,  CCR3 = 2666 * 3 / 5 = 1599
+  // USER0, 2 Hz, 1:5:  Period = 12000, CCR3 = 12000 * 1 / 6 = 2000
+  // USER1, 4 Hz, 1:3:  Period = 6000,  CCR3 = 6000 * 1 / 4 = 1500
+  // WAKEUP, 9 Hz, 3:2: Period = 2666,  CCR3 = 2666 * 3 / 5 = 1599
+  // 9 Hz is rounded down, the real frequency is 24000 / 2666 = 9.002 Hz
 
   uint32_t period = TIM3_TICK_HZ / freq;
 
@@ -111,7 +111,7 @@ int main(void)
     Button_Initialize();
     TIM3_InitForCompareOutput();
 
-    uint32_t mode = 0;      // 0 = noch keine Taste gedrückt
+    uint32_t mode = 0;      // 0 = no button pressed yet
 
     while (1)
     {
