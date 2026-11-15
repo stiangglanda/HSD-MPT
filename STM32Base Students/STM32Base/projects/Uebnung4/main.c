@@ -15,6 +15,8 @@
 #include "board_led.h"
 #include <stdbool.h>
 
+#define TIM3_TICK_HZ 24000U   // Zaehlfrequenz von TIM3
+
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -62,89 +64,40 @@ void TIM3_InitForCompareOutput(void)
   RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //activate clock
 
   //configure output
-  TIM3->CCMR2|= (3<<4);
+  TIM3->CCMR2 |= (6 << 4); // PWM mode
+  TIM3->CCMR2 |= TIM_CCMR2_OC3PE; // Vorladen für CCR3
 
   //enable output compare channel 3 for pin
   TIM3->CCER |= TIM_CCER_CC3E;
 }
 
 
-void TIM3_ChangeFrequency(uint32_t frequency)
+void TIM3_SetBlink(uint32_t freq, uint32_t high, uint32_t low)
 {
-  if (frequency == 0)
+  if (freq == 0 || (high + low) == 0)
   {
     return;
   }
 
-  TIM3->CR1 &= ~TIM_CR1_CEN; //disable timer
+  // TIM3 Takt = 24 MHz, PSC = 24 MHz / 24 kHz - 1 = 999
+  // Periode in Ticks = 24000 / freq
 
-  // 9(Hz) * 2(toggle) = 18
-  // 1/18 = 0.055555556s
+  // USER0, 2 Hz, 1:5:  Periode = 12000, CCR3 = 12000 * 1 / 6 = 2000
+  // USER1, 4 Hz, 1:3:  Periode = 6000,  CCR3 = 6000 * 1 / 4 = 1500
+  // WAKEUP, 9 Hz, 3:2: Periode = 2666,  CCR3 = 2666 * 3 / 5 = 1599
 
-  // 24.000.000 Hz / ((1000 - 1) +1) = 24.000 Hz
+  uint32_t period = TIM3_TICK_HZ / freq;
 
-  // 24000 * 0.055555556s = 1333.33333
+  TIM3->CR1 &= ~TIM_CR1_CEN;                  // stop timer
 
-  // 1333 / 2 = 666
+  TIM3->PSC  = (SystemCoreClock / TIM3_TICK_HZ) - 1;
+  TIM3->ARR  = period - 1;
+  TIM3->CCR3 = period * high / (high + low);
 
-  uint32_t arr = 24000 / (frequency * 2);
+  TIM3->CNT = 0;                              // reset counter
+  TIM3->EGR |= TIM_EGR_UG;                    // update registers
 
-  TIM3->PSC = 1000 - 1;
-  TIM3->ARR = arr - 1;
-  TIM3->CCR3 = arr / 2;
-
-  TIM3->CNT = 0; //reset counter
-
-  TIM3->EGR |= TIM_EGR_UG; //update registers
-
-  TIM3->CR1 |= TIM_CR1_CEN; //enable timer
-}
-
-/**
-  * @brief  Switch SYSCLK from 48 MHz to 24 MHz.
-  * @param  None
-  * @retval None
-  */
-static void Systemconfig_Clock(void)
-{
-    // Switch to HSI before changing the PLL.
-    RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_HSI;
-    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI)
-    {
-        // Wait for HSI.
-    }
-
-    // Disable PLL.
-    RCC->CR &= ~RCC_CR_PLLON;
-    while ((RCC->CR & RCC_CR_PLLRDY) != 0)
-    {
-        // Wait for PLL to stop.
-    }
-
-    // PREDIV /1: PLL input = 8 MHz.
-    RCC->CFGR2 = (RCC->CFGR2 & ~RCC_CFGR2_PREDIV1) | RCC_CFGR2_PREDIV1_DIV1;
-
-    // HSI/PREDIV x3: PLL output = 24 MHz.
-    RCC->CFGR = (RCC->CFGR & ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLMUL)) | RCC_CFGR_PLLSRC_HSI_PREDIV | RCC_CFGR_PLLMUL3;
-
-    // Keep the existing flash latency.
-
-    // Enable PLL.
-    RCC->CR |= RCC_CR_PLLON;
-    while ((RCC->CR & RCC_CR_PLLRDY) == 0)
-    {
-        // Wait for PLL.
-    }
-
-    // Select PLL as system clock.
-    RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
-    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL)
-    {
-        // Wait for the switch.
-    }
-
-    // Update CMSIS clock variable.
-    SystemCoreClock = 24000000U;
+  TIM3->CR1 |= TIM_CR1_CEN;                   // start timer
 }
 
 /**
@@ -154,27 +107,30 @@ static void Systemconfig_Clock(void)
   */
 int main(void)
 {
-
     SysTick_Init();
-    Systemconfig_Clock();
     Button_Initialize();
     TIM3_InitForCompareOutput();
 
+    uint32_t mode = 0;      // 0 = noch keine Taste gedrückt
+
     while (1)
     {
-      uint32_t buttonState = Button_GetState();
+        uint32_t buttonState = Button_GetState();
 
-      if (buttonState & BUTTON_USER0_MASK)
-      {
-        TIM3_ChangeFrequency(2);
-      }
-      else if (buttonState & BUTTON_USER1_MASK)
-      {
-        TIM3_ChangeFrequency(4);
-      }
-      else if (buttonState & BUTTON_WAKEUP_MASK)
-      {
-        TIM3_ChangeFrequency(9);
-      }
+        if ((buttonState & BUTTON_USER0_MASK) && mode != 1)
+        {
+            mode = 1;
+            TIM3_SetBlink(2, 1, 5);
+        }
+        else if ((buttonState & BUTTON_USER1_MASK) && mode != 2)
+        {
+            mode = 2;
+            TIM3_SetBlink(4, 1, 3);
+        }
+        else if ((buttonState & BUTTON_WAKEUP_MASK) && mode != 3)
+        {
+            mode = 3;
+            TIM3_SetBlink(9, 3, 2);
+        }
     }
 }
