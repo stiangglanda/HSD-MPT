@@ -40,7 +40,7 @@ void EXTI0_1_IRQHandler(void)
   {
     //we got an interrupt from USER0 pin (PD0)
     // clear the pending flag by writing 0x001 to the rgister
-    EXTI->PR = GPIO_Pin_0;
+    EXTI->PR = GPIO_Pin_0; // use = to clear the pending bit, not |=
 
     //TODO: toggle LED
   }
