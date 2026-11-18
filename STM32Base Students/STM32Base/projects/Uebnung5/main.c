@@ -36,7 +36,22 @@ void SysTick_Init(void)
 
 void EXTI0_1_IRQHandler(void)
 {
+  if(EXTI->PR & GPIO_Pin_0)
+  {
+    //we got an interrupt from USER0 pin (PD0)
+    // clear the pending flag by writing 0x001 to the rgister
+    EXTI->PR = GPIO_Pin_0;
 
+    //TODO: toggle LED
+  }
+  else if(EXTI->PR & GPIO_Pin_1)
+  {
+    //we got an interrupt from USER1 pin (PD1)
+    // clear the pending flag by writing 0x002 to the rgister
+    EXTI->PR = GPIO_Pin_1;
+
+    //TODO: toggle LED
+  }
 }
 
 void EXTI_Initialize(void) 
